@@ -3,85 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Garden Control Center</title>
+    <title>KxnG13 Garden Control</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
     <style>
-        body { font-family: sans-serif; text-align: center; background: #f0f4f8; color: #333; padding: 20px; }
-        .container { max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        .status-bar { margin-bottom: 20px; padding: 10px; border-radius: 10px; font-weight: bold; }
-        .online { background: #d4edda; color: #155724; }
-        .offline { background: #f8d7da; color: #721c24; }
-        .zone-card { border-bottom: 1px solid #eee; padding: 15px 0; display: flex; justify-content: space-between; align-items: center; }
-        button { padding: 10px 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn-on { background: #28a745; color: white; margin-right: 5px; }
-        .btn-off { background: #dc3545; color: white; }
-        button:active { transform: scale(0.95); }
+        body { font-family: 'Prompt', sans-serif; text-align: center; background: #f4f7f6; color: #333; padding: 20px; }
+        .container { max-width: 450px; margin: auto; background: white; padding: 25px; border-radius: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
+        h2 { color: #2d5a27; margin-bottom: 5px; }
+        .status-bar { margin-bottom: 25px; padding: 12px; border-radius: 15px; font-weight: bold; transition: 0.3s; }
+        .online { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .offline { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .zone-card { border-bottom: 1px solid #f0f0f0; padding: 18px 0; display: flex; justify-content: space-between; align-items: center; }
+        .zone-card:last-child { border-bottom: none; }
+        .zone-name { font-size: 1.1em; font-weight: 500; }
+        .btn-group { display: flex; gap: 10px; }
+        button { padding: 12px 20px; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.2s; }
+        .btn-on { background: #28a745; color: white; box-shadow: 0 4px #1e7e34; }
+        .btn-on:active { box-shadow: 0 0 #1e7e34; transform: translateY(4px); }
+        .btn-off { background: #dc3545; color: white; box-shadow: 0 4px #a71d2a; }
+        .btn-off:active { box-shadow: 0 0 #a71d2a; transform: translateY(4px); }
+        .footer-note { font-size: 0.8em; color: #888; margin-top: 20px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h2>🌳 สวนของ kxnG13</h2>
+    <p style="margin-top:0; color:#666;">Smart Irrigation System</p>
+    
     <div id="status-box" class="status-bar offline">สถานะ: กำลังเชื่อมต่อ... ⏳</div>
     
     <div id="controls">
         </div>
+
+    <div class="footer-note">MQTT via broker.hivemq.com (Port 8884)</div>
 </div>
 
 <script>
     // --- ตั้งค่าให้ตรงกับ ESP32 ---
     const MQTT_HOST = "broker.hivemq.com";
-    const MQTT_PORT = 8000; // WebSocket Port
+    const MQTT_PORT = 8884; // พอร์ต SSL สำหรับ WebSocket
     const TOPIC_PREFIX = "kxnG13/garden/zone/"; 
 
-    const client = new Paho.MQTT.Client(MQTT_HOST, Number(MQTT_PORT), "web_client_" + Math.random().toString(16).substr(2, 8));
+    // สร้าง Client ID แบบสุ่มเพื่อให้ไม่ซ้ำกับคนอื่น
+    const client = new Paho.MQTT.Client(MQTT_HOST, Number(MQTT_PORT), "web_kxnG_" + Math.random().toString(16).substr(2, 5));
 
-    // เมื่อเชื่อมต่อสำเร็จ
-    client.onConnect = () => {
-        const box = document.getElementById('status-box');
-        box.innerText = "สถานะ: ออนไลน์ ✅";
-        box.className = "status-bar online";
-    };
-
-    // เมื่อการเชื่อมต่อหลุด
-    client.onConnectionLost = (responseObject) => {
-        const box = document.getElementById('status-box');
-        box.innerText = "สถานะ: การเชื่อมต่อหลุด ❌";
-        box.className = "status-bar offline";
-        setTimeout(connectMQTT, 3000); // พยายามเชื่อมต่อใหม่ใน 3 วินาที
-    };
-
+    // ฟังก์ชันเชื่อมต่อ
     function connectMQTT() {
+        console.log("กำลังพยายามเชื่อมต่อ...");
         client.connect({
-            onSuccess: client.onConnect,
-            onFailure: (err) => {
-                console.log("Connect failed:", err);
-                setTimeout(connectMQTT, 5000);
-            },
-            useSSL: false, // ถ้าหน้าเว็บเป็น https บางครั้งต้องสลับเป็น true/false ลองดูครับ
-            timeout: 3
+            onSuccess: onConnect,
+            onFailure: onFail,
+            useSSL: true, // สำคัญ: GitHub Pages บังคับใช้ SSL
+            timeout: 5,
+            keepAliveInterval: 30
         });
     }
 
+    // เมื่อเชื่อมต่อสำเร็จ
+    function onConnect() {
+        console.log("เชื่อมต่อสำเร็จ ✅");
+        const box = document.getElementById('status-box');
+        box.innerText = "สถานะ: ออนไลน์ ✅";
+        box.className = "status-bar online";
+    }
+
+    // เมื่อการเชื่อมต่อล้มเหลว
+    function onFail(err) {
+        console.log("การเชื่อมต่อล้มเหลว:", err);
+        const box = document.getElementById('status-box');
+        box.innerText = "สถานะ: เชื่อมต่อไม่สำเร็จ (กำลังลองใหม่...)";
+        box.className = "status-bar offline";
+        setTimeout(connectMQTT, 5000); // รอ 5 วินาทีแล้วลองใหม่
+    }
+
+    // เมื่อการเชื่อมต่อหลุด
+    client.onConnectionLost = (responseObject) => {
+        if (responseObject.errorCode !== 0) {
+            console.log("การเชื่อมต่อหลุด:", responseObject.errorMessage);
+            onFail(responseObject);
+        }
+    };
+
+    // ฟังก์ชันส่งคำสั่ง
     function sendCmd(zone, state) {
         if (client.isConnected()) {
             const message = new Paho.MQTT.Message(state.toString());
             message.destinationName = TOPIC_PREFIX + zone;
+            message.qos = 1;
             client.send(message);
-            console.log("Sent:", TOPIC_PREFIX + zone, "Value:", state);
+            console.log("ส่งคำสั่ง:", TOPIC_PREFIX + zone, "ค่า:", state);
         } else {
-            alert("กรุณารอการเชื่อมต่อสักครู่...");
+            alert("หน้าเว็บยังไม่ได้เชื่อมต่อกับระบบ กรุณารอสักครู่...");
         }
     }
 
-    // สร้างปุ่มกด 6 โซน
+    // สร้าง UI สำหรับ 6 โซน
     const zones = ["หน้าบ้าน", "สวนกล้วยไม้", "แปลงผัก 1", "แปลงผัก 2", "ไม้ผล", "รั้วกินได้"];
     let html = "";
     zones.forEach((name, i) => {
         html += `
         <div class="zone-card">
-            <span>${name}</span>
-            <div>
+            <span class="zone-name">${name}</span>
+            <div class="btn-group">
                 <button class="btn-on" onclick="sendCmd(${i+1}, 1)">เปิด</button>
                 <button class="btn-off" onclick="sendCmd(${i+1}, 0)">ปิด</button>
             </div>
@@ -89,7 +112,7 @@
     });
     document.getElementById('controls').innerHTML = html;
 
-    // เริ่มการเชื่อมต่อ
+    // เริ่มทำงาน
     connectMQTT();
 </script>
 
