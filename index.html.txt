@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Garden IoT Controller</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #eef2f3; padding: 20px; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .btn-group { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 10px; border-bottom: 1px solid #eee; }
+        .label { font-weight: bold; color: #333; }
+        button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-on { background: #28a745; color: white; }
+        .btn-on:hover { background: #218838; }
+        .btn-off { background: #dc3545; color: white; }
+        .btn-off:hover { background: #c82333; }
+        #status { font-size: 0.9em; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🌳 ระบบรดน้ำอัจฉริยะ</h2>
+        <div id="status">สถานะ: กำลังเชื่อมต่อ...</div>
+        
+        <div id="controls"></div>
+    </div>
+
+    <script>
+        const TOPIC_PREFIX = "myunique_garden_99/zone/"; // ต้องตรงกับใน ESP32
+        const client = new Paho.MQTT.Client("broker.hivemq.com", 8000, "web_" + Math.random());
+
+        client.connect({ onSuccess: () => {
+            document.getElementById('status').innerHTML = "สถานะ: <span style='color:green'>ออนไลน์ ✅</span>";
+        }});
+
+        function send(zone, state) {
+            let message = new Paho.MQTT.Message(state.toString());
+            message.destinationName = TOPIC_PREFIX + zone;
+            client.send(message);
+        }
+
+        // สร้างปุ่มแบบอัตโนมัติ 1-6
+        const zones = ["หน้าบ้าน", "สวนกล้วยไม้", "แปลงผัก 1", "แปลงผัก 2", "ไม้ผล", "รั้วกินได้"];
+        let html = "";
+        zones.forEach((name, i) => {
+            html += `<div class="btn-group">
+                <span class="label">${name}</span>
+                <div>
+                    <button class="btn-on" onclick="send(${i+1}, 1)">เปิด</button>
+                    <button class="btn-off" onclick="send(${i+1}, 0)">ปิด</button>
+                </div>
+            </div>`;
+        });
+        document.getElementById('controls').innerHTML = html;
+    </script>
+</body>
+</html>
