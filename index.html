@@ -3,118 +3,233 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KxnG13 Garden Control</title>
+    <title>Smart Garden | Control Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
     <style>
-        body { font-family: 'Prompt', sans-serif; text-align: center; background: #f4f7f6; color: #333; padding: 20px; }
-        .container { max-width: 450px; margin: auto; background: white; padding: 25px; border-radius: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
-        h2 { color: #2d5a27; margin-bottom: 5px; }
-        .status-bar { margin-bottom: 25px; padding: 12px; border-radius: 15px; font-weight: bold; transition: 0.3s; }
-        .online { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .offline { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .zone-card { border-bottom: 1px solid #f0f0f0; padding: 18px 0; display: flex; justify-content: space-between; align-items: center; }
-        .zone-card:last-child { border-bottom: none; }
-        .zone-name { font-size: 1.1em; font-weight: 500; }
-        .btn-group { display: flex; gap: 10px; }
-        button { padding: 12px 20px; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.2s; }
-        .btn-on { background: #28a745; color: white; box-shadow: 0 4px #1e7e34; }
-        .btn-on:active { box-shadow: 0 0 #1e7e34; transform: translateY(4px); }
-        .btn-off { background: #dc3545; color: white; box-shadow: 0 4px #a71d2a; }
-        .btn-off:active { box-shadow: 0 0 #a71d2a; transform: translateY(4px); }
-        .footer-note { font-size: 0.8em; color: #888; margin-top: 20px; }
+        :root {
+            --primary-color: #2d5a27;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-main: #2c3e50;
+            --text-sub: #7f8c8d;
+            --accent: #27ae60;
+            --danger: #e74c3c;
+        }
+
+        body {
+            font-family: 'Prompt', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background: var(--card-bg);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-info {
+            display: flex;
+            justify-content: space-around;
+            max-width: 600px;
+            margin: 10px auto;
+            font-size: 0.9em;
+            color: var(--text-sub);
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 15px;
+        }
+
+        #status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ccc;
+            margin-right: 5px;
+        }
+
+        .online { background: var(--accent) !important; }
+
+        .zone-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border: 1px solid #f0f0f0;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .card-header h3 { margin: 0; font-weight: 600; color: var(--primary-color); }
+
+        .schedule-box {
+            background: #fdfdfd;
+            border: 1px dashed #ddd;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        .schedule-box label { font-size: 0.8em; color: var(--text-sub); display: block; }
+
+        input[type="time"] {
+            border: 1px solid #ddd;
+            padding: 5px;
+            border-radius: 5px;
+            font-family: 'Prompt';
+            width: 100%;
+            margin-top: 5px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-on { background-color: #e8f5e9; color: var(--accent); }
+        .btn-on:hover { background-color: var(--accent); color: white; }
+
+        .btn-off { background-color: #fbe9e7; color: var(--danger); }
+        .btn-off:hover { background-color: var(--danger); color: white; }
+
+        .footer { text-align: center; margin-top: 40px; color: #ccc; font-size: 0.8em; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>🌳 สวนของ kxnG13</h2>
-    <p style="margin-top:0; color:#666;">Smart Irrigation System</p>
-    
-    <div id="status-box" class="status-bar offline">สถานะ: กำลังเชื่อมต่อ... ⏳</div>
-    
-    <div id="controls">
-        </div>
+<header>
+    <h2 style="margin:0; letter-spacing: 1px;">GARDEN CONTROL</h2>
+    <div class="header-info">
+        <div id="date-display">...</div>
+        <div id="time-display" style="font-weight: 600; color: var(--primary-color);">00:00:00</div>
+        <div><span id="status-indicator"></span><span id="status-text">Connecting</span></div>
+    </div>
+</header>
 
-    <div class="footer-note">MQTT via broker.hivemq.com (Port 8884)</div>
+<div class="container">
+    <div id="zone-container" class="zone-grid"></div>
+    <div class="footer">Smart Irrigation System v2.0 | kxnG13</div>
 </div>
 
 <script>
-    // --- ตั้งค่าให้ตรงกับ ESP32 ---
     const MQTT_HOST = "broker.hivemq.com";
-    const MQTT_PORT = 8884; // พอร์ต SSL สำหรับ WebSocket
-    const TOPIC_PREFIX = "kxnG13/garden/zone/"; 
+    const MQTT_PORT = 8884;
+    const TOPIC_PREFIX = "kxnG13/garden/zone/";
+    const client = new Paho.MQTT.Client(MQTT_HOST, Number(MQTT_PORT), "web_client_" + Math.random().toString(16).substr(2, 5));
 
-    // สร้าง Client ID แบบสุ่มเพื่อให้ไม่ซ้ำกับคนอื่น
-    const client = new Paho.MQTT.Client(MQTT_HOST, Number(MQTT_PORT), "web_kxnG_" + Math.random().toString(16).substr(2, 5));
+    // ระบบเวลาและปฏิทิน
+    function updateDateTime() {
+        const now = new Date();
+        document.getElementById('date-display').innerText = now.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+        document.getElementById('time-display').innerText = now.toLocaleTimeString('th-TH');
+        
+        // เช็คระบบตั้งเวลาทุกวินาที
+        checkSchedules(now.getHours(), now.getMinutes());
+    }
+    setInterval(updateDateTime, 1000);
 
-    // ฟังก์ชันเชื่อมต่อ
+    // ระบบเชื่อมต่อ MQTT
     function connectMQTT() {
-        console.log("กำลังพยายามเชื่อมต่อ...");
         client.connect({
-            onSuccess: onConnect,
-            onFailure: onFail,
-            useSSL: true, // สำคัญ: GitHub Pages บังคับใช้ SSL
-            timeout: 5,
-            keepAliveInterval: 30
+            onSuccess: () => {
+                document.getElementById('status-indicator').className = 'online';
+                document.getElementById('status-text').innerText = 'Online';
+            },
+            onFailure: () => setTimeout(connectMQTT, 5000),
+            useSSL: true
         });
     }
 
-    // เมื่อเชื่อมต่อสำเร็จ
-    function onConnect() {
-        console.log("เชื่อมต่อสำเร็จ ✅");
-        const box = document.getElementById('status-box');
-        box.innerText = "สถานะ: ออนไลน์ ✅";
-        box.className = "status-bar online";
+    function sendCmd(zone, state) {
+        if (!client.isConnected()) return;
+        const msg = new Paho.MQTT.Message(state.toString());
+        msg.destinationName = TOPIC_PREFIX + zone;
+        client.send(msg);
     }
 
-    // เมื่อการเชื่อมต่อล้มเหลว
-    function onFail(err) {
-        console.log("การเชื่อมต่อล้มเหลว:", err);
-        const box = document.getElementById('status-box');
-        box.innerText = "สถานะ: เชื่อมต่อไม่สำเร็จ (กำลังลองใหม่...)";
-        box.className = "status-bar offline";
-        setTimeout(connectMQTT, 5000); // รอ 5 วินาทีแล้วลองใหม่
-    }
+    // สร้าง UI
+    const zones = ["หน้าบ้าน", "สวนกล้วยไม้", "แปลงผัก 1", "แปลงผัก 2", "ไม้ผล", "รั้วกินได้"];
+    let zoneHtml = "";
+    zones.forEach((name, i) => {
+        zoneHtml += `
+            <div class="card">
+                <div class="card-header">
+                    <h3>${name}</h3>
+                    <small style="color:#aaa">Zone ${i+1}</small>
+                </div>
+                <div class="schedule-box">
+                    <label>⏱️ ตั้งเวลารดน้ำอัตโนมัติ</label>
+                    <input type="time" id="sched-${i+1}" onchange="saveSchedule(${i+1}, this.value)">
+                </div>
+                <div class="btn-group">
+                    <button class="btn-on" onclick="sendCmd(${i+1}, 1)">เปิดน้ำ</button>
+                    <button class="btn-off" onclick="sendCmd(${i+1}, 0)">ปิดน้ำ</button>
+                </div>
+            </div>`;
+    });
+    document.getElementById('zone-container').innerHTML = zoneHtml;
 
-    // เมื่อการเชื่อมต่อหลุด
-    client.onConnectionLost = (responseObject) => {
-        if (responseObject.errorCode !== 0) {
-            console.log("การเชื่อมต่อหลุด:", responseObject.errorMessage);
-            onFail(responseObject);
+    // ระบบตั้งเวลา (Client-side)
+    let activeSchedules = {};
+
+    function saveSchedule(zone, time) {
+        if(time) {
+            activeSchedules[zone] = time;
+            console.log(`ตั้งเวลาโซน ${zone} ที่ ${time}`);
         }
+    }
+
+    function checkSchedules(h, m) {
+        const currentTime = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        for (let zone in activeSchedules) {
+            if (activeSchedules[zone] === currentTime) {
+                sendCmd(zone, 1); // เปิดน้ำเมื่อถึงเวลา
+                // เพื่อไม่ให้ส่งคำสั่งรัวๆ ในนาทีเดียวกัน
+                delete activeSchedules[zone]; 
+                document.getElementById(`sched-${zone}`).value = ""; // ล้างค่าหน้าเว็บ
+            }
+        }
+    }
+
+    client.onConnectionLost = () => {
+        document.getElementById('status-indicator').className = '';
+        document.getElementById('status-text').innerText = 'Offline';
+        connectMQTT();
     };
 
-    // ฟังก์ชันส่งคำสั่ง
-    function sendCmd(zone, state) {
-        if (client.isConnected()) {
-            const message = new Paho.MQTT.Message(state.toString());
-            message.destinationName = TOPIC_PREFIX + zone;
-            message.qos = 1;
-            client.send(message);
-            console.log("ส่งคำสั่ง:", TOPIC_PREFIX + zone, "ค่า:", state);
-        } else {
-            alert("หน้าเว็บยังไม่ได้เชื่อมต่อกับระบบ กรุณารอสักครู่...");
-        }
-    }
-
-    // สร้าง UI สำหรับ 6 โซน
-    const zones = ["หน้าบ้าน", "สวนกล้วยไม้", "แปลงผัก 1", "แปลงผัก 2", "ไม้ผล", "รั้วกินได้"];
-    let html = "";
-    zones.forEach((name, i) => {
-        html += `
-        <div class="zone-card">
-            <span class="zone-name">${name}</span>
-            <div class="btn-group">
-                <button class="btn-on" onclick="sendCmd(${i+1}, 1)">เปิด</button>
-                <button class="btn-off" onclick="sendCmd(${i+1}, 0)">ปิด</button>
-            </div>
-        </div>`;
-    });
-    document.getElementById('controls').innerHTML = html;
-
-    // เริ่มทำงาน
     connectMQTT();
 </script>
-
 </body>
 </html>
