@@ -27,7 +27,7 @@
     </div>
 
     <script>
-        const TOPIC_PREFIX = "myunique_garden_99/zone/"; // ต้องตรงกับใน ESP32
+        const baseTopic = "kxnG13/garden/zone/"; // ต้องตรงกับใน ESP32
         const client = new Paho.MQTT.Client("broker.hivemq.com", 8000, "web_" + Math.random());
 
         client.connect({ onSuccess: () => {
