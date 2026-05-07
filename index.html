@@ -3,233 +3,233 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Garden | Control Center</title>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+    <title>Garden Elite | Control Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Prompt:wght@200;400;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
     <style>
         :root {
-            --primary-color: #2d5a27;
-            --bg-color: #f8f9fa;
-            --card-bg: #ffffff;
-            --text-main: #2c3e50;
-            --text-sub: #7f8c8d;
-            --accent: #27ae60;
-            --danger: #e74c3c;
+            --bg: #0a0a0a;
+            --card: #161616;
+            --accent: #d4af37; /* Gold */
+            --text: #ffffff;
+            --text-dim: #888;
+            --green: #2ecc71;
+            --red: #e74c3c;
         }
 
         body {
-            font-family: 'Prompt', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            margin: 0;
-            padding: 0;
+            font-family: 'Inter', 'Prompt', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0; padding: 0;
         }
 
         header {
-            background: var(--card-bg);
-            padding: 20px;
+            padding: 40px 20px;
             text-align: center;
-            border-bottom: 1px solid #eee;
-            position: sticky;
-            top: 0;
-            z-index: 100;
+            background: linear-gradient(to bottom, #1a1a1a, var(--bg));
         }
 
-        .header-info {
-            display: flex;
-            justify-content: space-around;
-            max-width: 600px;
-            margin: 10px auto;
-            font-size: 0.9em;
-            color: var(--text-sub);
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            padding: 5px 15px;
+            border-radius: 20px;
+            background: #222;
+            font-size: 0.8em;
+            border: 1px solid #333;
+            margin-top: 10px;
         }
 
-        .container {
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 15px;
+        .dot { height: 8px; width: 8px; border-radius: 50%; margin-right: 8px; background: #555; }
+        .dot.online { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+
+        .container { max-width: 900px; margin: auto; padding: 20px; }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
         }
 
-        #status-indicator {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #ccc;
-            margin-right: 5px;
+        .info-card {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 15px;
+            border: 1px solid #222;
+            text-align: center;
         }
-
-        .online { background: var(--accent) !important; }
 
         .zone-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 20px;
         }
 
         .card {
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-            border: 1px solid #f0f0f0;
+            background: var(--card);
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid #222;
+            transition: 0.3s;
         }
 
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
+        .card:hover { border-color: var(--accent); }
+
+        .card-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--accent);
         }
 
-        .card-header h3 { margin: 0; font-weight: 600; color: var(--primary-color); }
-
-        .schedule-box {
-            background: #fdfdfd;
-            border: 1px dashed #ddd;
-            padding: 10px;
-            border-radius: 8px;
+        .schedule-input {
             margin: 15px 0;
+            background: #222;
+            padding: 10px;
+            border-radius: 10px;
         }
-
-        .schedule-box label { font-size: 0.8em; color: var(--text-sub); display: block; }
 
         input[type="time"] {
-            border: 1px solid #ddd;
-            padding: 5px;
-            border-radius: 5px;
-            font-family: 'Prompt';
+            background: transparent;
+            border: none;
+            color: var(--accent);
+            font-size: 1.1em;
             width: 100%;
-            margin-top: 5px;
+            outline: none;
         }
 
-        .btn-group {
-            display: flex;
-            gap: 10px;
-        }
+        .btn-group { display: flex; gap: 10px; margin-top: 20px; }
 
         button {
             flex: 1;
             padding: 12px;
-            border: none;
-            border-radius: 10px;
+            border-radius: 12px;
+            border: 1px solid #333;
             cursor: pointer;
             font-weight: 600;
-            transition: all 0.2s;
+            background: transparent;
+            color: var(--text);
+            transition: 0.2s;
         }
 
-        .btn-on { background-color: #e8f5e9; color: var(--accent); }
-        .btn-on:hover { background-color: var(--accent); color: white; }
+        .btn-on:hover { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+        .btn-off:hover { background: var(--red); color: white; border-color: var(--red); }
 
-        .btn-off { background-color: #fbe9e7; color: var(--danger); }
-        .btn-off:hover { background-color: var(--danger); color: white; }
-
-        .footer { text-align: center; margin-top: 40px; color: #ccc; font-size: 0.8em; }
+        .auto-banner {
+            background: linear-gradient(45deg, #1a1a1a, #2a2a2a);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            border-left: 4px solid var(--accent);
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
 
 <header>
-    <h2 style="margin:0; letter-spacing: 1px;">GARDEN CONTROL</h2>
-    <div class="header-info">
-        <div id="date-display">...</div>
-        <div id="time-display" style="font-weight: 600; color: var(--primary-color);">00:00:00</div>
-        <div><span id="status-indicator"></span><span id="status-text">Connecting</span></div>
+    <h1 style="margin:0; font-weight: 200; letter-spacing: 4px;">GARDEN ELITE</h1>
+    <div class="status-pill">
+        <div id="dot" class="dot"></div>
+        <span id="status-text">SYSTEM STANDBY</span>
     </div>
 </header>
 
 <div class="container">
+    <div class="auto-banner">
+        ✨ <b>Morning Routine:</b> ระบบจะทำงานอัตโนมัติตั้งแต่ 06:00 น. (โซน 1-6 ต่อเนื่องโซนละ 10 นาที)
+    </div>
+
+    <div class="info-grid">
+        <div class="info-card">
+            <div style="color:var(--text-dim); font-size: 0.8em;">DATE</div>
+            <div id="date" style="font-size: 1.1em;">-</div>
+        </div>
+        <div class="info-card">
+            <div style="color:var(--text-dim); font-size: 0.8em;">TIME</div>
+            <div id="time" style="font-size: 1.1em; color: var(--accent);">00:00</div>
+        </div>
+    </div>
+
     <div id="zone-container" class="zone-grid"></div>
-    <div class="footer">Smart Irrigation System v2.0 | kxnG13</div>
 </div>
 
 <script>
     const MQTT_HOST = "broker.hivemq.com";
     const MQTT_PORT = 8884;
-    const TOPIC_PREFIX = "kxnG13/garden/zone/";
-    const client = new Paho.MQTT.Client(MQTT_HOST, Number(MQTT_PORT), "web_client_" + Math.random().toString(16).substr(2, 5));
+    const TOPIC = "kxnG13/garden/zone/";
+    const client = new Paho.MQTT.Client(MQTT_HOST, Number(MQTT_PORT), "web_" + Math.random().toString(16).substr(2, 5));
 
-    // ระบบเวลาและปฏิทิน
-    function updateDateTime() {
+    function updateClock() {
         const now = new Date();
-        document.getElementById('date-display').innerText = now.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
-        document.getElementById('time-display').innerText = now.toLocaleTimeString('th-TH');
-        
-        // เช็คระบบตั้งเวลาทุกวินาที
+        document.getElementById('date').innerText = now.toLocaleDateString('th-TH', {day:'2-digit', month:'short'});
+        document.getElementById('time').innerText = now.toLocaleTimeString('th-TH', {hour12:false});
         checkSchedules(now.getHours(), now.getMinutes());
     }
-    setInterval(updateDateTime, 1000);
+    setInterval(updateClock, 1000);
 
-    // ระบบเชื่อมต่อ MQTT
-    function connectMQTT() {
+    function connect() {
         client.connect({
             onSuccess: () => {
-                document.getElementById('status-indicator').className = 'online';
-                document.getElementById('status-text').innerText = 'Online';
+                document.getElementById('dot').className = 'dot online';
+                document.getElementById('status-text').innerText = 'SYSTEM ONLINE';
             },
-            onFailure: () => setTimeout(connectMQTT, 5000),
+            onFailure: () => setTimeout(connect, 5000),
             useSSL: true
         });
     }
 
-    function sendCmd(zone, state) {
+    function send(z, s) {
         if (!client.isConnected()) return;
-        const msg = new Paho.MQTT.Message(state.toString());
-        msg.destinationName = TOPIC_PREFIX + zone;
-        client.send(msg);
+        const m = new Paho.MQTT.Message(s.toString());
+        m.destinationName = TOPIC + z;
+        client.send(m);
     }
 
-    // สร้าง UI
-    const zones = ["หน้าบ้าน", "สวนกล้วยไม้", "แปลงผัก 1", "แปลงผัก 2", "ไม้ผล", "รั้วกินได้"];
-    let zoneHtml = "";
+    const zones = ["โซนหน้าบ้าน", "สวนกล้วยไม้", "แปลงผัก A", "แปลงผัก B", "โซนไม้ผล", "แนวรั้ว"];
+    let html = "";
     zones.forEach((name, i) => {
-        zoneHtml += `
+        html += `
             <div class="card">
-                <div class="card-header">
-                    <h3>${name}</h3>
-                    <small style="color:#aaa">Zone ${i+1}</small>
-                </div>
-                <div class="schedule-box">
-                    <label>⏱️ ตั้งเวลารดน้ำอัตโนมัติ</label>
-                    <input type="time" id="sched-${i+1}" onchange="saveSchedule(${i+1}, this.value)">
+                <div class="card-title">${name}</div>
+                <div style="color:var(--text-dim); font-size: 0.8em;">Zone Control 0${i+1}</div>
+                <div class="schedule-input">
+                    <label style="font-size:0.7em; color:var(--accent)">CUSTOM TIMER</label>
+                    <input type="time" id="t-${i+1}">
                 </div>
                 <div class="btn-group">
-                    <button class="btn-on" onclick="sendCmd(${i+1}, 1)">เปิดน้ำ</button>
-                    <button class="btn-off" onclick="sendCmd(${i+1}, 0)">ปิดน้ำ</button>
+                    <button class="btn-on" onclick="send(${i+1}, 1)">OPEN</button>
+                    <button class="btn-off" onclick="send(${i+1}, 0)">CLOSE</button>
                 </div>
             </div>`;
     });
-    document.getElementById('zone-container').innerHTML = zoneHtml;
+    document.getElementById('zone-container').innerHTML = html;
 
-    // ระบบตั้งเวลา (Client-side)
-    let activeSchedules = {};
-
-    function saveSchedule(zone, time) {
-        if(time) {
-            activeSchedules[zone] = time;
-            console.log(`ตั้งเวลาโซน ${zone} ที่ ${time}`);
-        }
-    }
+    let schedules = {};
+    document.querySelectorAll('input[type="time"]').forEach(input => {
+        input.onchange = (e) => schedules[input.id.split('-')[1]] = e.target.value;
+    });
 
     function checkSchedules(h, m) {
-        const currentTime = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-        for (let zone in activeSchedules) {
-            if (activeSchedules[zone] === currentTime) {
-                sendCmd(zone, 1); // เปิดน้ำเมื่อถึงเวลา
-                // เพื่อไม่ให้ส่งคำสั่งรัวๆ ในนาทีเดียวกัน
-                delete activeSchedules[zone]; 
-                document.getElementById(`sched-${zone}`).value = ""; // ล้างค่าหน้าเว็บ
+        const now = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+        for (let z in schedules) {
+            if (schedules[z] === now) {
+                send(z, 1);
+                delete schedules[z];
+                document.getElementById(`t-${z}`).value = "";
             }
         }
     }
 
     client.onConnectionLost = () => {
-        document.getElementById('status-indicator').className = '';
-        document.getElementById('status-text').innerText = 'Offline';
-        connectMQTT();
+        document.getElementById('dot').className = 'dot';
+        document.getElementById('status-text').innerText = 'RECONNECTING...';
+        connect();
     };
 
-    connectMQTT();
+    connect();
 </script>
 </body>
 </html>
